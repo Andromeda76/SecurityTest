@@ -1,20 +1,19 @@
 package com.example.securitytest.setting;
 
-import com.example.securitytest.service.event.UserInfoFilter;
-import com.example.securitytest.setting.authentication.UserInfoAuthenticationProvider;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import com.example.securitytest.service.event.UserInfoFilter;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import com.example.securitytest.setting.authentication.UserInfoAuthenticationProvider;
 import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
-import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.authentication.AuthenticationManager;
 
 
 @Configuration
@@ -48,9 +47,10 @@ public class SecurityConfig {
 
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, AuthenticationManager authenticationManager) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.headers(headers -> headers.
                 frameOptions(HeadersConfigurer.FrameOptionsConfig::disable));
+
         http.securityContext(securityContextConfigurer ->
                         securityContextConfigurer.requireExplicitSave(false))
                 .csrf(AbstractHttpConfigurer::disable)
@@ -59,7 +59,7 @@ public class SecurityConfig {
                         .permitAll()
                         .anyRequest()
                         .authenticated())
-                .addFilterAt(userInfoFilter(authenticationManager), UsernamePasswordAuthenticationFilter.class);
+                .addFilterAt(userInfoFilter(authenticationManager(http)), UserInfoFilter.class);
 
         return http.build();
     }
