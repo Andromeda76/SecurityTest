@@ -14,6 +14,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 
@@ -22,7 +23,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class UserInfoAuthenticationProvider implements AuthenticationProvider {
 
-
+    private final PasswordEncoder passwordEncoder;
     private final UserInfoService userInfoService;
 
     @Override
@@ -31,6 +32,8 @@ public class UserInfoAuthenticationProvider implements AuthenticationProvider {
             String username = authenticationToken.getName(); // or getUserInfo().getUsername()
             String rawPassword = authenticationToken.getCredentials().toString();
 
+
+            String pas = passwordEncoder.encode(rawPassword);
             UserInfo userInfo = userInfoService.findByUsername(username).block();
 
             if (userInfo == null || !userInfo.getPassword().equals(rawPassword)) {

@@ -8,7 +8,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
@@ -30,15 +29,8 @@ public class SecurityAPI {
 
     @GetMapping("/getInfo")
     public UserInfo getInfo() {
-        UserInfo userInfo = new UserInfo();
-        userInfo.setEmail("ali.asgari1376@gmail.com");
-        userInfo.setPassword("asgari");
-        userInfo.setUsername("ali");
-
-        setUserInCurrentAuthorizedSession();
-//        UserDetails userDetails = userInfoService.save(userInfo);
-
-        return userInfo;
+        System.out.println(SecurityContextHolder.getContext().getAuthentication().getPrincipal());
+        return null;
     }
 
 
