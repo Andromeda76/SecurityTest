@@ -45,7 +45,6 @@ public class SecurityConfig {
         return filter;
     }
 
-
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.headers(headers -> headers.
