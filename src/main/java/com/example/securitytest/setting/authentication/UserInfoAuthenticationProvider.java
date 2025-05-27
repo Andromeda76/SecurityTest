@@ -1,24 +1,18 @@
 package com.example.securitytest.setting.authentication;
 
 
-import com.example.securitytest.model.entity.Person;
-import com.example.securitytest.service.event.UserInfoAuthToken;
-import com.example.securitytest.service.model.PersonService;
 import lombok.RequiredArgsConstructor;
-
-import java.util.List;
-import com.example.securitytest.model.entity.UserInfo;
-import org.springframework.security.authentication.AuthenticationServiceException;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import com.example.securitytest.service.model.UserInfoService;
-import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.authority.AuthorityUtils;
-import org.springframework.security.authentication.AuthenticationProvider;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
-
+import java.util.List;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.authentication.AuthenticationProvider;
+import com.example.securitytest.model.entity.Person;
+import com.example.securitytest.service.model.PersonService;
+import com.example.securitytest.service.event.UserInfoAuthToken;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.authentication.AuthenticationServiceException;
 
 
 @Component
