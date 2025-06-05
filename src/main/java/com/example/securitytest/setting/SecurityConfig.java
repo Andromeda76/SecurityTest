@@ -23,7 +23,16 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.CorsUtils;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalUnit;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 
 @Configuration
@@ -65,12 +74,6 @@ public class SecurityConfig {
         return filter;
     }
 
-    /**
-     * Because we have hikari database config in our properties
-     * it has been found by Spring boot and injected automatically in our bean DataSource
-     * @return
-     */
-
     @Bean
     public AuthenticationManager authenticationManager(UserDetailsManager manager) {
         DaoAuthenticationProvider daoAuthenticationProvider = new DaoAuthenticationProvider();
@@ -84,6 +87,13 @@ public class SecurityConfig {
         http.headers(headers -> headers.
                    frameOptions(HeadersConfigurer.FrameOptionsConfig::disable));
 
+        http.cors(cors -> {
+            cors.configurationSource(corsConfigurationSource());
+            });
+
+        http.rememberMe(httpSecurityRememberMeConfigurer ->
+                    httpSecurityRememberMeConfigurer.key("remember-me"));
+
         http.securityContext(securityContextConfigurer ->
                         securityContextConfigurer.requireExplicitSave(Boolean.FALSE))
                 .csrf(AbstractHttpConfigurer::disable)
@@ -95,6 +105,27 @@ public class SecurityConfig {
                 .addFilterAt(userInfoFilter(authenticationManager(manager)), UserInfoFilter.class);
 
         return http.build();
+    }
+
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        return s -> {
+            CorsConfiguration corsConfiguration = new CorsConfiguration();
+            corsConfiguration.setAllowedOrigins(List.of("*","*"));
+            corsConfiguration.addAllowedOrigin("*");
+            corsConfiguration.addAllowedHeader("*");
+            corsConfiguration.addAllowedMethod("*");
+            corsConfiguration.addExposedHeader("Authorization");
+            corsConfiguration.addExposedHeader("Access-Control-Allow-Origin");
+            corsConfiguration.addExposedHeader("Access-Control-Allow-Methods");
+            corsConfiguration.validateAllowCredentials();
+            corsConfiguration.setMaxAge(Duration.of(30, ChronoUnit.MICROS));
+            corsConfiguration.setAllowPrivateNetwork(Boolean.TRUE);
+            corsConfiguration.setAllowCredentials(Boolean.TRUE);
+            corsConfiguration.validateAllowPrivateNetwork();
+            return corsConfiguration;
+        };
     }
 
 }
