@@ -15,13 +15,19 @@ import org.springframework.security.provisioning.JdbcUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.provisioning.UserDetailsManager;
 import org.springframework.security.authentication.AuthenticationManager;
+import com.example.securitytest.setting.authentication.UserInfoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.authentication.AuthenticationManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import com.example.securitytest.service.event.UserInfoFilter;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import com.example.securitytest.setting.authentication.UserInfoAuthenticationProvider;
 import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -39,24 +45,13 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new SCryptPasswordEncoder(32768, 16, 4, 64, 32);
-    }
+    private final UserInfoAuthenticationProvider userInfoAuthenticationProvider;
 
-
-    @Bean
-    public UserDetailsManager userDetailsManager(DataSource dataSource) {
-        JdbcUserDetailsManager userDetailsManager = new JdbcUserDetailsManager();
-        userDetailsManager.setDataSource(dataSource);
-        userDetailsManager.setEnableGroups(Boolean.TRUE);
-        userDetailsManager.setAuthoritiesByUsernameQuery(Query.CUSTOM_GROUP_QUERY());
-        userDetailsManager.setUsersByUsernameQuery(Query.CUSTOM_USER_BY_USERNAME_QUERY());
-        userDetailsManager.setGroupAuthoritiesByUsernameQuery(Query.CUSTOM_GROUP_AUTHORITIES_BY_USERNAME_QUERY());
-
-        return userDetailsManager;
-    }
-
+    /**
+     * Because we have hikari database config in our properties
+     * it has been found by Spring boot and injected automatically in our bean DataSource
+     * @return
+     */
 
     @Bean
     public UserInfoFilter userInfoFilter(AuthenticationManager authenticationManager) {
@@ -72,6 +67,13 @@ public class SecurityConfig {
         filter.setAuthenticationSuccessHandler(successHandler);
         filter.afterPropertiesSet();
         return filter;
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception {
+        AuthenticationManagerBuilder builder = http.getSharedObject(AuthenticationManagerBuilder.class);
+        builder.authenticationProvider(userInfoAuthenticationProvider);
+        return builder.build();
     }
 
     @Bean

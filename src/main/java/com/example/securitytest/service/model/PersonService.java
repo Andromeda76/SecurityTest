@@ -21,4 +21,8 @@ public class PersonService {
         return repository.save(person);
     }
 
+    public Person findByUsername(String username) {
+        return repository.findByUsername(username);
+    }
+
 }

@@ -1,5 +1,6 @@
 package com.example.securitytest.service.event;
 
+import com.example.securitytest.model.entity.Person;
 import com.example.securitytest.model.entity.UserInfo;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -19,7 +20,7 @@ public class UserInfoFilter extends UsernamePasswordAuthenticationFilter {
 
     @Override
     public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response) throws AuthenticationException {
-        UserInfo userInfo = new UserInfo();
+        Person userInfo = new Person();
 
         String username = obtainUsername(request);
         String password = obtainPassword(request);
