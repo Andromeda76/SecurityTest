@@ -89,7 +89,6 @@ public class SecurityConfig {
                                          new LoginUrlAuthenticationEntryPoint("/Login.html"));//For not authenticated users
                                 ex.accessDeniedPage("/error/fuckingDenied"); //For authenticated but unauthorized requests
                              });
-
         return http.build();
     }
 
