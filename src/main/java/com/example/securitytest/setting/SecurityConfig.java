@@ -32,7 +32,6 @@ public class SecurityConfig {
     private final UserInfoAuthenticationProvider userInfoAuthenticationProvider;
 
 
-
     @Bean
     public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception {
         AuthenticationManagerBuilder builder = http.getSharedObject(AuthenticationManagerBuilder.class);
@@ -60,9 +59,10 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-
         http.headers(headers ->
                 headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::disable));
+
+        http.sessionManagement().invalidSessionUrl("/loginAPI/logout");
 
         x509Authentication(http);
         rememberMeServices(http);
