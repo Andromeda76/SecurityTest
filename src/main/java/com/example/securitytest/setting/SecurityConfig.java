@@ -1,73 +1,37 @@
 package com.example.securitytest.setting;
 
 
-import javax.sql.DataSource;
-
-import com.example.securitytest.model.defaults.Query;
-import com.example.securitytest.setting.authentication.UserInfoAuthenticationProvider;
-import org.springframework.security.authentication.ProviderManager;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.crypto.scrypt.SCryptPasswordEncoder;
-import org.springframework.security.provisioning.JdbcUserDetailsManager;
-import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.provisioning.UserDetailsManager;
-import org.springframework.security.authentication.AuthenticationManager;
-import com.example.securitytest.setting.authentication.UserInfoAuthenticationProvider;
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
-import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.authentication.AuthenticationManager;
+import com.example.securitytest.setting.provider.UserInfoAuthenticationProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import com.example.securitytest.service.event.UserInfoFilter;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import com.example.securitytest.setting.authentication.UserInfoAuthenticationProvider;
-import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
+import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.expression.WebExpressionAuthorizationManager;
+import org.springframework.security.web.authentication.*;
+import org.springframework.security.web.authentication.preauth.AbstractPreAuthenticatedProcessingFilter;
+import org.springframework.security.web.authentication.preauth.x509.X509AuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.CorsUtils;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
-import java.time.temporal.TemporalUnit;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 
 @Configuration
 @RequiredArgsConstructor
 public class SecurityConfig {
 
+    private final RememberMeServices rememberMeServices;
+    private final UserDetailsService userDetailsService;
     private final UserInfoAuthenticationProvider userInfoAuthenticationProvider;
 
-    /**
-     * Because we have hikari database config in our properties
-     * it has been found by Spring boot and injected automatically in our bean DataSource
-     * @return
-     */
 
-    @Bean
-    public UserInfoFilter userInfoFilter(AuthenticationManager authenticationManager) {
-        UserInfoFilter filter = new UserInfoFilter(authenticationManager);
-        var successHandler = new SavedRequestAwareAuthenticationSuccessHandler();
-
-        successHandler.setDefaultTargetUrl("/securityAPI/getInfo");
-        successHandler.setAlwaysUseDefaultTargetUrl(Boolean.TRUE);
-        filter.setFilterProcessesUrl("/loginAPI/log");
-        filter.setUsernameParameter("username");
-        filter.setPasswordParameter("password");
-
-        filter.setAuthenticationSuccessHandler(successHandler);
-        filter.afterPropertiesSet();
-        return filter;
-    }
 
     @Bean
     public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception {
@@ -76,58 +40,95 @@ public class SecurityConfig {
         return builder.build();
     }
 
+
     @Bean
-    public AuthenticationManager authenticationManager(UserDetailsManager manager) {
-        DaoAuthenticationProvider daoAuthenticationProvider = new DaoAuthenticationProvider();
-        daoAuthenticationProvider.setPasswordEncoder(passwordEncoder());
-        daoAuthenticationProvider.setUserDetailsService(manager);
-        return new ProviderManager(daoAuthenticationProvider);
+    public UsernamePasswordAuthenticationFilter userInfoFilter(AuthenticationManager authenticationManager) {
+        var filter = new UsernamePasswordAuthenticationFilter(authenticationManager);
+        var successHandler = new SavedRequestAwareAuthenticationSuccessHandler();
+
+        successHandler.setDefaultTargetUrl("/securityAPI/getInfo");
+        filter.setFilterProcessesUrl("/loginAPI/log");
+        filter.setUsernameParameter("username");
+        filter.setPasswordParameter("password");
+
+        filter.setAuthenticationSuccessHandler(successHandler);
+        filter.setRememberMeServices(rememberMeServices);
+        filter.afterPropertiesSet();
+        return filter;
     }
 
+
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, UserDetailsManager manager) throws Exception {
-        http.headers(headers -> headers.
-                   frameOptions(HeadersConfigurer.FrameOptionsConfig::disable));
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
-        http.cors(cors -> {
-            cors.configurationSource(corsConfigurationSource());
-            });
+        http.headers(headers ->
+                headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::disable));
 
-        http.rememberMe(httpSecurityRememberMeConfigurer ->
-                    httpSecurityRememberMeConfigurer.key("remember-me"));
+        x509Authentication(http);
+        rememberMeServices(http);
+        corsConfigurationSourceBuilder(http);
 
         http.securityContext(securityContextConfigurer ->
                         securityContextConfigurer.requireExplicitSave(Boolean.FALSE))
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/loginAPI/log")
+                        .requestMatchers("/Login.html", "/loginAPI/login")
                         .permitAll()
+                            .requestMatchers("/authority/save")
+                        .access(new WebExpressionAuthorizationManager(
+                                "isFullyAuthenticated() and !isRememberMe() and hasAuthority('ADMIN')"))
                         .anyRequest()
                         .authenticated())
-                .addFilterAt(userInfoFilter(authenticationManager(manager)), UserInfoFilter.class);
+                     .addFilterAt(userInfoFilter(authenticationManager(http)), UsernamePasswordAuthenticationFilter.class)
+
+                     .addFilterAt(new X509AuthenticationFilter(){{
+                         setAuthenticationManager(authenticationManager(http));}}, AbstractPreAuthenticatedProcessingFilter.class)
+
+                             .exceptionHandling(ex -> {
+                                 ex.authenticationEntryPoint(
+                                         new LoginUrlAuthenticationEntryPoint("/Login.html"));//For not authenticated users
+                                ex.accessDeniedPage("/error/fuckingDenied"); //For authenticated but unauthorized requests
+                             });
 
         return http.build();
     }
 
 
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        return s -> {
-            CorsConfiguration corsConfiguration = new CorsConfiguration();
-            corsConfiguration.setAllowedOrigins(List.of("*","*"));
-            corsConfiguration.addAllowedOrigin("*");
-            corsConfiguration.addAllowedHeader("*");
-            corsConfiguration.addAllowedMethod("*");
-            corsConfiguration.addExposedHeader("Authorization");
-            corsConfiguration.addExposedHeader("Access-Control-Allow-Origin");
-            corsConfiguration.addExposedHeader("Access-Control-Allow-Methods");
-            corsConfiguration.validateAllowCredentials();
-            corsConfiguration.setMaxAge(Duration.of(30, ChronoUnit.MICROS));
-            corsConfiguration.setAllowPrivateNetwork(Boolean.TRUE);
-            corsConfiguration.setAllowCredentials(Boolean.TRUE);
-            corsConfiguration.validateAllowPrivateNetwork();
-            return corsConfiguration;
-        };
+    private void x509Authentication(HttpSecurity http) throws Exception {
+        http.x509(x509Builder -> {
+            x509Builder.subjectPrincipalRegex("CN=(.*?)(?:,|$)");
+            x509Builder.userDetailsService(userDetailsService);
+        });
     }
+
+
+    private void rememberMeServices(HttpSecurity http) throws Exception {
+        http.rememberMe(
+                rememberMeConfigurer ->
+                        rememberMeConfigurer.rememberMeServices(rememberMeServices)
+                                .useSecureCookie(Boolean.TRUE)
+                                .tokenValiditySeconds(1200));
+    }
+
+
+    private void corsConfigurationSourceBuilder(HttpSecurity http) throws Exception {
+        /**
+         * 👍👍👍 Make Remember-me cookie path limited 😂😂😂
+         */
+
+        http.cors(cors -> {
+
+            cors.configurationSource(configurationSource -> {
+                CorsConfiguration corsConfiguration = new CorsConfiguration();
+
+                corsConfiguration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With"));
+                corsConfiguration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+                corsConfiguration.setAllowedOrigins(List.of("http://localhost:63342"));
+                corsConfiguration.setMaxAge(Duration.of(30, ChronoUnit.MINUTES));
+                corsConfiguration.setAllowCredentials(Boolean.TRUE);
+
+                return corsConfiguration;});
+            });
+        }
 
 }

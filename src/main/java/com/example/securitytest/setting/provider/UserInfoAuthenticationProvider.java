@@ -1,49 +1,50 @@
-package com.example.securitytest.setting.authentication;
+package com.example.securitytest.setting.provider;
 
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-import java.util.List;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.authentication.AuthenticationProvider;
-import com.example.securitytest.model.entity.Person;
-import com.example.securitytest.service.model.PersonService;
-import com.example.securitytest.service.event.UserInfoAuthToken;
+import java.util.Objects;
 import org.springframework.security.core.AuthenticationException;
+import com.example.securitytest.service.event.SecurityContextModelAware;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.authentication.AuthenticationServiceException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+
 
 
 @Component
 @RequiredArgsConstructor
 public class UserInfoAuthenticationProvider implements AuthenticationProvider {
 
-    private final PersonService userInfoService;
+
     private final PasswordEncoder passwordEncoder;
+    private final SecurityContextModelAware securityContextModelAware;
 
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
-        if (authentication instanceof UserInfoAuthToken authenticationToken) {
+        if (authentication instanceof UsernamePasswordAuthenticationToken authenticationToken) {
             String username = authenticationToken.getName();
             String rawPassword = authenticationToken.getCredentials().toString();
+            UserDetails userDetails = securityContextModelAware.loadUserByUsername(username);
 
-            Person userInfo = userInfoService.findByUsername(username);
-
-            if (userInfo == null || !passwordEncoder.matches(rawPassword, userInfo.getPassword())) {
+            if (Objects.isNull(userDetails) || !passwordEncoder.matches(rawPassword, userDetails.getPassword())) {
                 throw new UsernameNotFoundException("User not found");
             }
 
-            return new UserInfoAuthToken(userInfo, rawPassword, List.of(userInfo.getGroupInfo().getAuthority()), userInfo);
+            return new UsernamePasswordAuthenticationToken(userDetails, userDetails.getPassword(),
+                                                            userDetails.getAuthorities());
         }
-
         throw new AuthenticationServiceException("Unsupported authentication token: " + authentication.getClass());
     }
 
 
     @Override
     public boolean supports(Class<?> authentication) {
-        return UserInfoAuthToken.class.isAssignableFrom(authentication);
+        return UsernamePasswordAuthenticationToken.class.isAssignableFrom(authentication);
     }
 
 

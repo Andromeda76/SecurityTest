@@ -1,11 +1,11 @@
 package com.example.securitytest.service.model;
 
 
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 import com.example.securitytest.model.entity.Person;
 import com.example.securitytest.repository.PersonIRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
 
 
 @Service
