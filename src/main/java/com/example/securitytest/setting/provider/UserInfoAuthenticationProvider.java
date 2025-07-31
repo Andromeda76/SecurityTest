@@ -9,7 +9,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.authentication.AuthenticationProvider;
 import java.util.Objects;
 import org.springframework.security.core.AuthenticationException;
-import com.example.securitytest.service.event.SecurityContextModelAware;
+import com.example.securitytest.service.event.SecurityContextModel;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -22,21 +22,20 @@ public class UserInfoAuthenticationProvider implements AuthenticationProvider {
 
 
     private final PasswordEncoder passwordEncoder;
-    private final SecurityContextModelAware securityContextModelAware;
+    private final SecurityContextModel securityContextModel;
 
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
         if (authentication instanceof UsernamePasswordAuthenticationToken authenticationToken) {
             String username = authenticationToken.getName();
             String rawPassword = authenticationToken.getCredentials().toString();
-            UserDetails userDetails = securityContextModelAware.loadUserByUsername(username);
+            UserDetails userDetails = securityContextModel.loadUserByUsername(username);
 
             if (Objects.isNull(userDetails) || !passwordEncoder.matches(rawPassword, userDetails.getPassword())) {
                 throw new UsernameNotFoundException("User not found");
             }
 
-            return new UsernamePasswordAuthenticationToken(userDetails, userDetails.getPassword(),
-                                                            userDetails.getAuthorities());
+            return new UsernamePasswordAuthenticationToken(userDetails, userDetails.getPassword(), userDetails.getAuthorities());
         }
         throw new AuthenticationServiceException("Unsupported authentication token: " + authentication.getClass());
     }

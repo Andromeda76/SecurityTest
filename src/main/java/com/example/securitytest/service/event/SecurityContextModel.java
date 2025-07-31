@@ -15,7 +15,7 @@ import java.util.List;
 
 @Component
 @RequiredArgsConstructor
-public class SecurityContextModelAware implements UserDetailsService {
+public class SecurityContextModel implements UserDetailsService {
 
 
     private final PersonService personService;
