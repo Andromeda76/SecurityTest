@@ -2,6 +2,7 @@ package com.example.securitytest.setting.provider;
 
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -29,6 +30,7 @@ public class UserInfoAuthenticationProvider implements AuthenticationProvider {
         if (authentication instanceof UsernamePasswordAuthenticationToken authenticationToken) {
             String username = authenticationToken.getName();
             String rawPassword = authenticationToken.getCredentials().toString();
+
             UserDetails userDetails = securityContextModel.loadUserByUsername(username);
 
             if (Objects.isNull(userDetails) || !passwordEncoder.matches(rawPassword, userDetails.getPassword())) {
