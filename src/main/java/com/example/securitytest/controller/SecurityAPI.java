@@ -3,12 +3,15 @@ package com.example.securitytest.controller;
 
 import com.example.securitytest.model.entity.UserInfo;
 import com.example.securitytest.service.model.UserInfoService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
+
+import java.util.Arrays;
 
 
 @RestController
@@ -27,7 +30,10 @@ public class SecurityAPI {
 
 
     @GetMapping("/getInfo")
-    public User getInfo() {
+    public User getInfo(HttpServletRequest httpServletRequest) {
+        Arrays.stream(httpServletRequest.getCookies()).forEach(cookie -> {
+            System.out.println(cookie.getValue());
+        });
         System.out.println(SecurityContextHolder.getContext().getAuthentication().getPrincipal());
         return setUserInCurrentAuthorizedSession();
     }
@@ -37,9 +43,7 @@ public class SecurityAPI {
     private User setUserInCurrentAuthorizedSession() {
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        User userInfo = (User) authentication.getPrincipal();
-        System.out.println(userInfo.getPassword());
-        return userInfo;
+        return (User) authentication.getPrincipal();
     }
 
 }

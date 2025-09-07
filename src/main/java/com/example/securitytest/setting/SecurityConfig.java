@@ -10,6 +10,7 @@ import org.springframework.security.config.annotation.authentication.builders.Au
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.expression.WebExpressionAuthorizationManager;
@@ -62,10 +63,11 @@ public class SecurityConfig {
         http.headers(headers ->
                 headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::disable));
 
-        http.sessionManagement().invalidSessionUrl("/loginAPI/logout");
+//        http.sessionManagement(session ->
+//                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
-        x509Authentication(http);
         rememberMeServices(http);
+        x509Authentication(http);
         corsConfigurationSourceBuilder(http);
 
         http.securityContext(securityContextConfigurer ->
@@ -79,15 +81,12 @@ public class SecurityConfig {
                                 "isFullyAuthenticated() and !isRememberMe() and hasAuthority('ADMIN')"))
                         .anyRequest()
                         .authenticated())
-                     .addFilterAt(userInfoFilter(authenticationManager(http)), UsernamePasswordAuthenticationFilter.class)
-
                      .addFilterAt(new X509AuthenticationFilter(){{
                          setAuthenticationManager(authenticationManager(http));}}, AbstractPreAuthenticatedProcessingFilter.class)
-
                              .exceptionHandling(ex -> {
                                  ex.authenticationEntryPoint(
                                          new LoginUrlAuthenticationEntryPoint("/Login.html"));//For not authenticated users
-                                ex.accessDeniedPage("/error/fuckingDenied"); //For authenticated but unauthorized requests
+                                         ex.accessDeniedPage("/error/fuckingDenied"); //For authenticated but unauthorized requests
                              });
         return http.build();
     }
@@ -95,7 +94,6 @@ public class SecurityConfig {
 
     private void x509Authentication(HttpSecurity http) throws Exception {
         http.x509(x509Builder -> {
-            x509Builder.subjectPrincipalRegex("CN=(.*?)(?:,|$)");
             x509Builder.userDetailsService(userDetailsService);
         });
     }
@@ -104,7 +102,8 @@ public class SecurityConfig {
     private void rememberMeServices(HttpSecurity http) throws Exception {
         http.rememberMe(
                 rememberMeConfigurer ->
-                        rememberMeConfigurer.rememberMeServices(rememberMeServices)
+                        rememberMeConfigurer
+                                .rememberMeServices(rememberMeServices)
                                 .useSecureCookie(Boolean.TRUE)
                                 .tokenValiditySeconds(1200));
     }

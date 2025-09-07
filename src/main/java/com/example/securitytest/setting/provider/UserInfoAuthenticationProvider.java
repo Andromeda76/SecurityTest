@@ -34,7 +34,7 @@ public class UserInfoAuthenticationProvider implements AuthenticationProvider {
             UserDetails userDetails = securityContextModel.loadUserByUsername(username);
 
             if (Objects.isNull(userDetails) || !passwordEncoder.matches(rawPassword, userDetails.getPassword())) {
-                throw new UsernameNotFoundException("User not found");
+//                throw new UsernameNotFoundException("User not found");
             }
 
             return new UsernamePasswordAuthenticationToken(userDetails, userDetails.getPassword(), userDetails.getAuthorities());
