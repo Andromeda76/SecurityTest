@@ -55,7 +55,7 @@ public class SecurityConfig {
         var successHandler = new SavedRequestAwareAuthenticationSuccessHandler();
 
         successHandler.setDefaultTargetUrl("/securityAPI/getInfo");
-        successHandler.setAlwaysUseDefaultTargetUrl(Boolean.TRUE);
+//        successHandler.setAlwaysUseDefaultTargetUrl(Boolean.TRUE);
         filter.setFilterProcessesUrl("/loginAPI/log");
         filter.setUsernameParameter("username");
         filter.setPasswordParameter("password");
